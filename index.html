@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Form to CSV</title>
+</head>
+
+<body>
+
+    <form name="cadastro" class="cadastro">
+        <div class="nome">
+            <label>Nome: *</label>
+            <input type="text" name="nome" required />
+        </div>
+        <div class="email">
+            <label>E-mail: *</label>
+            <input type="text" name="email" required />
+        </div>
+        <div class="cpf">
+            <label>CPF:*</label>
+            <input type="text" name="cpf" required />
+        </div>
+        <div class="cep">
+            <label>CEP: *</label>
+            <input type="text" name="cep" required />
+        </div>
+        <div class="logradouro">
+            <label>Endereço: *</label>
+            <input type="text" name="logradouro" required />
+        </div>
+        <div class="numero">
+            <label>Número*:</label>
+            <input type="number" name="numero" required />
+        </div>
+        <div class="complemento">
+            <label>Complemento:</label>
+            <input type="text" name="complemento" />
+        </div>
+        <div class="bairro">
+            <label>Bairro: *</label>
+            <input type="text" name="bairro" required />
+        </div>
+        <div class="cidade">
+            <label>Cidade: *</label>
+            <input type="text" name="cidade" required />
+        </div>
+        <div class="estado">
+            <label>Estado: *</label>
+            <input type="text" name="estado" required />
+        </div>
+        <input type="submit" value="Enviar" />
+    </form>
+
+    <div class="limit" style="display:none;">
+        <p>Atingimos o limite</p>
+    </div>
+    <div class="success" style="display:none;">
+        <p>suas informações foram salvas!</p>
+    </div>
+
+    <script language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.15.1/jquery.validate.min.js"></script>
+    <script language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.maskedinput/1.4.1/jquery.maskedinput.min.js" type="text/javascript"></script>
+    <script>
+        jQuery(document).ready(function() {
+
+            jQuery.ajax({
+                type: "GET",
+                url: "submit.php?limit=1",
+                success: function(result) {
+                    if (result === 'limite_atingido') {
+                        jQuery(".cadastro").remove();
+                        jQuery(".limit").show();
+                    } else {
+                        console.log(result);
+                    }
+                }
+            });
+
+            jQuery("input[name=cpf]").mask("999.999.999-99");
+            jQuery("input[name=cep]").mask("99999-999").keypress(function(e) {
+                var cep = jQuery(this).val().replace('_', '');
+                if (cep.length == 9) {
+                    getEndereco(cep);
+                }
+            });
+
+            function getEndereco(cep) {
+                if (jQuery.trim(cep) != "") {
+                    jQuery.getScript("http://cep.republicavirtual.com.br/web_cep.php?formato=javascript&cep=" + cep, function() {
+                        console.log(resultadoCEP["tipo_logradouro"]);
+                        if (resultadoCEP["resultado"] != 0) {
+                            jQuery("div.cep label small").remove();
+                            var logradouro = unescape(resultadoCEP["tipo_logradouro"] + ' ' + resultadoCEP["logradouro"])
+                            jQuery("input[name=logradouro]").val(logradouro);
+                            jQuery("input[name=cidade]").val(unescape(resultadoCEP["cidade"]));
+                            jQuery("input[name=estado]").val(unescape(resultadoCEP["uf"]));
+                        } else {
+                            jQuery("div.cep label small").remove();
+                            jQuery("div.cep label").append('<small style="color:red;">CEP inválido.</small>');
+                        }
+                    });
+                } else {
+                    jQuery("div.cep label small").remove();
+                    jQuery("div.cep label").append('<small style="color:red;">Por favor, digite um CEP válido.</small>');
+                }
+            }
+
+            jQuery('#cadastraForm').validate({
+                submitHandler: function(form) {
+                    jQuery.ajax({
+                        type: "GET",
+                        url: "submit.php?cpf=" + cpf,
+                        success: function(result) {
+                            if (result === 'cpf_nao_existe') {
+                                jQuery.ajax({
+                                    type: "POST",
+                                    data: jQuery("#cadastraForm").serialize(),
+                                    url: "submit.php?valid=1",
+                                    success: function(result) {
+                                        if (result) {
+                                            jQuery(".cadastro").remove();
+                                            jQuery(".success").show();
+                                        }
+                                    }
+                                });
+                            } else {
+                                console.log(result);
+                                jQuery('.cpf label small').remove();
+                                jQuery('.cpf label').append('<small style="color:red;">CPF já cadastrado.</small>');
+                            }
+                        }
+                    });
+                }
+            });
+
+        });
+    </script>
+
+</body>
+
+</html>
